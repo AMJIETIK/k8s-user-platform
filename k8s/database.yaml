@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-deployment
+  namespace: database
+  labels:
+    app: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+      - name: database
+        image: postgres:latest
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: POSTGRES_DB
+        volumeMounts:
+        - mountPath: /var/lib/postgresql
+          name: database-storage
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: database-storage
+        persistentVolumeClaim:
+          claimName: database-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-service
+  namespace: database
+spec:
+  selector:
+    app: database
+  ports:  
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
